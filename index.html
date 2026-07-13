@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Performance Activity Dashboard - Current Quarter</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 13px; line-height: 1.5; background: #ffffff; color: #1f2328; }
+  .page { max-width: 1100px; margin: 0 auto; padding: 28px 20px 48px; }
+
+  .header { border-bottom: 2px solid #e5e7eb; padding-bottom: 14px; margin-bottom: 20px; }
+  .header h1 { font-size: 20px; font-weight: 700; color: #1f2328; }
+  .header p { color: #57606a; font-size: 12px; margin-top: 3px; }
+
+  /* Filters */
+  .filters { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 11px 16px; }
+  .filter-group { display: flex; align-items: center; gap: 4px; }
+  .filters label { font-size: 11px; font-weight: 600; color: #57606a; white-space: nowrap; }
+  .filters select { font-size: 11px; padding: 3px 7px; border: 1px solid #e5e7eb; border-radius: 4px; background: #fff; color: #1f2328; cursor: pointer; max-width: 160px; }
+  .filter-reset { font-size: 11px; padding: 3px 10px; border: 1px solid #e5e7eb; border-radius: 4px; background: #fff; color: #57606a; cursor: pointer; }
+  #filter-count { font-size: 11px; color: #57606a; margin-left: auto; }
+
+  /* KPI */
+  .kpi-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 9px; margin-bottom: 12px; }
+  .kpi-card { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 11px 10px 9px; }
+  .kpi-card .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: #57606a; margin-bottom: 3px; line-height: 1.3; min-height: 24px; }
+  .kpi-card .value { font-size: 20px; font-weight: 700; line-height: 1.1; color: #1f2328; }
+  .kpi-card .sub { font-size: 10px; color: #57606a; margin-top: 3px; }
+  .kpi-card .sub strong { color: #3b82d4; }
+  .kpi-card.accent .value { color: #3b82d4; }
+  .kpi-card.purple .value { color: #7c5cd8; }
+  .kpi-card.green .value  { color: #2da44e; }
+
+  /* Type chips */
+  .type-row { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 18px; }
+  .type-chip { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 20px; padding: 3px 11px; font-size: 11px; }
+  .type-chip strong { color: #3b82d4; }
+
+  /* Section title */
+  .section-title { font-size: 13px; font-weight: 600; color: #1f2328; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #e5e7eb; }
+
+  /* Charts — 5 cols */
+  .charts-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 24px; }
+  .chart-box { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; }
+  .chart-box .section-title { font-size: 10px; margin-bottom: 9px; }
+  .bar-list { list-style: none; }
+  .bar-item { margin-bottom: 7px; }
+  .bar-label { font-size: 10px; color: #1f2328; margin-bottom: 2px; display: flex; justify-content: space-between; }
+  .bar-label span.name { max-width: 95px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-label span.val { font-weight: 600; flex-shrink: 0; margin-left: 4px; }
+  .bar-label span.val.blue   { color: #3b82d4; }
+  .bar-label span.val.purple { color: #7c5cd8; }
+  .bar-label span.val.teal   { color: #0d9488; }
+  .bar-label span.val.green  { color: #2da44e; }
+  .bar-label span.val.orange { color: #d97706; }
+  .bar-track { background: #e5e7eb; border-radius: 3px; height: 5px; }
+  .bar-fill { height: 5px; border-radius: 3px; }
+  .bar-fill.blue   { background: #3b82d4; }
+  .bar-fill.purple { background: #7c5cd8; }
+  .bar-fill.teal   { background: #0d9488; }
+  .bar-fill.green  { background: #2da44e; }
+  .bar-fill.orange { background: #d97706; }
+
+  /* No-activity collapsible */
+  .no-act-toggle {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; margin-bottom: 0;
+    padding-bottom: 8px; border-bottom: 1px solid #e5e7eb;
+    user-select: none;
+  }
+  .no-act-toggle h2 { font-size: 13px; font-weight: 600; color: #1f2328; }
+  .no-act-count { background: #fee2e2; color: #991b1b; border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+  .no-act-pct { font-size: 11px; color: #57606a; }
+  .no-act-chevron { margin-left: auto; font-size: 11px; color: #57606a; transition: transform 0.2s; }
+  .no-act-chevron.open { transform: rotate(180deg); }
+  .no-act-body-wrap { overflow: hidden; max-height: 0; transition: max-height 0.25s ease; margin-bottom: 0; }
+  .no-act-body-wrap.open { max-height: 2000px; margin-bottom: 32px; }
+  .no-act-body-wrap .table-wrap { margin-top: 10px; margin-bottom: 0; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 32px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  thead th {
+    background: #f7f8fa; padding: 7px 6px; text-align: left;
+    font-weight: 600; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.03em; color: #57606a; border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap; user-select: none;
+  }
+  thead th.num { text-align: right; }
+  thead th.sortable { cursor: pointer; }
+  thead th.sortable:hover { background: #eef0f3; color: #1f2328; }
+  thead th .sort-icon { display: inline-block; margin-left: 3px; font-size: 9px; color: #b0b8c1; }
+  thead th.sort-asc  .sort-icon::after { content: " ▲"; color: #3b82d4; }
+  thead th.sort-desc .sort-icon::after { content: " ▼"; color: #3b82d4; }
+  thead th:not(.sort-asc):not(.sort-desc) .sort-icon::after { content: " ⇅"; }
+  tbody tr { border-bottom: 1px solid #f0f1f3; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #f7f8fa; }
+  tbody td { padding: 5px 6px; }
+  tbody td.num { text-align: right; }
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .badge-sdr      { background: #dbeafe; color: #1e40af; }
+  .badge-seller   { background: #dcfce7; color: #166534; }
+  .badge-tech     { background: #f3e8ff; color: #6b21a8; }
+  .badge-sales    { background: #fef9c3; color: #713f12; }
+  .badge-pending  { background: #fee2e2; color: #991b1b; }
+  .badge-student  { background: #e0f2fe; color: #0369a1; }
+  .badge-manager  { background: #f1f5f9; color: #475569; }
+  .badge-other    { background: #f3f4f6; color: #374151; }
+  .zero { color: #b0b8c1; }
+
+  .footer { text-align: center; color: #57606a; font-size: 11px; border-top: 1px solid #e5e7eb; padding-top: 14px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <h1>Team Performance Activity Dashboard - Current Quarter</h1>
+    <p>Source: Activities per User.xlsx — Sheet: Team Performance &nbsp;|&nbsp; 107 reps across BR, SSA, MX, LA, PEB, CL, CO, APU clusters</p>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter-group"><label for="f-type">User Type:</label><select id="f-type"><option value="">All</option></select></div>
+    <div class="filter-group"><label for="f-cluster">Cluster:</label><select id="f-cluster"><option value="">All</option></select></div>
+    <div class="filter-group"><label for="f-segment">Segment:</label><select id="f-segment"><option value="">All</option></select></div>
+    <div class="filter-group"><label for="f-group">Group:</label><select id="f-group"><option value="">All</option></select></div>
+    <button class="filter-reset" id="btn-reset">Reset</button>
+    <span id="filter-count"></span>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card accent">
+      <div class="label">Total Activities</div>
+      <div class="value" id="kpi-total">—</div>
+      <div class="sub">Avg/day: <strong id="kpi-avg-act">—</strong></div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">People Touched</div>
+      <div class="value" id="kpi-people">—</div>
+      <div class="sub">Avg/day: <strong id="kpi-avg-ppl">—</strong></div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Emails Sent</div>
+      <div class="value" id="kpi-emails">—</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="label">Email Opened</div>
+      <div class="value" id="kpi-opened">—</div>
+      <div class="sub">vs sent: <strong id="kpi-pct-opened" style="color:#7c5cd8">—</strong></div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="label">Email Clicked</div>
+      <div class="value" id="kpi-clicked">—</div>
+      <div class="sub">vs sent: <strong id="kpi-pct-clicked" style="color:#7c5cd8">—</strong></div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="label">Email Replied</div>
+      <div class="value" id="kpi-replied">—</div>
+      <div class="sub">vs sent: <strong id="kpi-pct-replied" style="color:#7c5cd8">—</strong></div>
+    </div>
+    <div class="kpi-card green">
+      <div class="label">Calls Logged</div>
+      <div class="value" id="kpi-calls">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Meetings</div>
+      <div class="value" id="kpi-meetings">—</div>
+    </div>
+  </div>
+
+  <!-- User Type chips -->
+  <div class="type-row" id="type-chips"></div>
+
+  <!-- Top 5 Reps Charts -->
+  <div class="section-title">Top 5 Reps</div>
+  <div class="charts-row">
+    <div class="chart-box"><div class="section-title">By Total Activities</div><ul class="bar-list" id="chart-activities"></ul></div>
+    <div class="chart-box"><div class="section-title">By Emails Sent</div><ul class="bar-list" id="chart-emails"></ul></div>
+    <div class="chart-box"><div class="section-title">By Email Reply Rate</div><ul class="bar-list" id="chart-replyrate"></ul></div>
+    <div class="chart-box"><div class="section-title">By Calls Logged</div><ul class="bar-list" id="chart-calls"></ul></div>
+    <div class="chart-box"><div class="section-title">By Meetings</div><ul class="bar-list" id="chart-meetings"></ul></div>
+  </div>
+
+  <!-- Sellers with No Activities (collapsible) -->
+  <div class="no-act-toggle" id="no-act-toggle">
+    <h2>Reps with No Activities</h2>
+    <span class="no-act-count" id="no-act-count">0</span>
+    <span class="no-act-pct" id="no-act-pct"></span>
+    <span class="no-act-chevron" id="no-act-chevron">▼</span>
+  </div>
+  <div class="no-act-body-wrap" id="no-act-body-wrap">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Type</th><th>Cluster</th><th>Segment</th><th>Group</th><th>Seller</th></tr>
+        </thead>
+        <tbody id="no-act-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Rep Activity Details -->
+  <div class="section-title" style="margin-top:20px">Rep Activity Details</div>
+  <div class="table-wrap">
+    <table id="main-table">
+      <thead><tr id="main-thead-row"></tr></thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+
+  <div class="footer">Made with IBM Bob</div>
+</div>
+
+<script>
+  // cols: 0=Type,1=Cluster,2=Segment,3=Group,4=Seller,
+  //       5=TotalAct,6=PeopleTouched,7=AvgPerDay,8=AvgPeoplePerDay,
+  //       9=EmailsSent,10=Opened,11=Clicked,12=Replied,
+  //       13=Calls,14=ConvRate%,15=Meetings,16=CallsOverdue,17=EmailsOverdue
+  const RAW = [
+    ["SDR","BR","Activate","Brazil_Select_Activate_Automation","Lívia Torres Storani",730,531,81.1,59,582,182,14,18,148,6.8,1,10,410],
+    ["SDR","BR","Activate","Brazil_Select_Activate_Data","Nicolas Barra",909,470,101,52.2,778,92,8,3,131,2.3,2,54,48],
+    ["SDR","BR","Activate","Brazil_Select_Activate_Storage","Marcelle Rezende",309,199,34.3,22.1,198,30,2,0,111,8.1,0,69,41],
+    ["SDR","BR","Activate","Brazil_Select_Activate_Cloud_and_Power","Rebeca Batista",367,275,40.8,30.6,262,61,2,1,105,14.3,2,37,98],
+    ["SDR","BR","Growth","Brazil_Select_Growth_Data","Matheus Matos",142,132,15.8,14.7,38,3,0,0,104,5.8,0,35,null],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Data","Luan Sousa",859,425,95.4,47.2,667,63,11,1,97,12.4,32,33,null],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Storage","Fabio Ueno",91,78,10.1,8.7,0,0,0,0,91,22,6,56,null],
+    ["SDR","BR","Activate","Brazil_Select_Activate_Automation","Joao Vitor Santana Silveira",183,125,20.3,13.9,96,15,0,2,87,6.9,0,9,8],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Storage","Rafael Lucianetti Oliveira",78,68,8.7,7.6,0,0,0,0,78,1.3,0,44,null],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Automation","Marcelo Machado",76,71,8.4,7.9,0,0,0,0,76,10.5,1,null,null],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Automation","Kaue Saraiva",69,63,7.7,7,0,0,0,0,69,0,0,39,null],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Storage","Alexandre Rosati",64,64,7.1,7.1,0,0,0,0,64,9.4,2,38,null],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Storage","Marcela Xavier",103,72,11.4,8,40,3,0,3,63,0,6,23,null],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Automation","Lucas Pereira",61,55,6.8,6.1,0,0,0,0,61,1.6,8,36,null],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Data","Marilia Reis",114,79,12.7,8.8,57,9,0,3,57,15.8,1,14,null],
+    ["SDR","SSA","Activate","SSA_Select_Activate_Data","Juan Quiroga",3508,2549,389.8,283.2,2835,775,103,25,51,33.3,7,27,971],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Automation","Daniel Salheb Nogueira",49,37,5.4,4.1,0,0,0,0,49,14.3,9,5,null],
+    ["SDR","SSA","Activate","SSA_Select_Activate_Data","Delfina Silikovich",1484,1073,164.9,119.2,1438,227,24,7,46,28.3,8,28,389],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Automation","Raphael Grzybowski Lemos Ribeiro",36,35,4,3.9,0,0,0,0,36,30.6,4,23,null],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Storage","Luana Borzino",32,30,3.6,3.3,0,0,0,0,32,0,5,16,null],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Data","joao pinheiro",30,26,3.3,2.9,0,0,0,0,30,13.3,13,null,null],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Storage","Fabricio Souza",44,34,4.9,3.8,16,0,0,3,28,17.9,9,13,null],
+    ["Seller","MX","Activate","Mexico_Select_Activate_Automation","Mariana Bonilla",134,125,14.9,13.9,132,24,0,2,2,0,0,2,112],
+    ["Seller","SSA","Activate","SSA_Select_Activate_Data","Ricardo Urdaneta",1,1,0.1,0.1,0,0,0,0,1,100,4,null,null],
+    ["Pending","LA","Activate","Latin America","Eduardo Gallegos",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Seller","LA","Activate","Latin America","Joaquin Belo",48,21,5.3,2.3,48,0,0,12,0,null,26,null,null],
+    ["Pending","LA","Activate","Latin America","Julieth Andrea Hernandez Rojas",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["SDR","LA","Activate","Latin America","Pedro Agra",207,208,23,23.1,207,56,4,1,0,null,0,null,10],
+    ["Tech Seller","LA","Activate","Latin America","Rafaela Kara Carmo",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Seller","LA","Activate","Latin America","Yosed Rodriguez Sanchez",13,7,1.4,0.8,13,0,0,4,0,null,8,null,null],
+    ["Tech Seller","MX","Activate","Mexico_Select_Activate_Automation","Abraham Alexis Gonzalez Alamilla",0,null,0,null,0,0,0,0,0,null,12,null,null],
+    ["Seller","MX","Activate","Mexico_Select_Activate_Automation","Diana Velazquez",0,null,0,null,0,0,0,0,0,null,3,null,null],
+    ["Pending","MX","Activate","Mexico_Select_Activate_Automation","Javier Alvizo",0,null,0,null,0,0,0,0,0,null,6,null,null],
+    ["Seller","MX","Activate","Mexico_Select_Activate_Automation","Pablo Martin Micheli",6,4,0.7,0.4,6,0,0,1,0,null,0,null,null],
+    ["Sales Acceleration","MX","Activate","Mexico_Select_Activate_Automation","Paolo Specia",2733,1503,303.7,167,1755,363,46,6,0,null,2,null,84],
+    ["Seller","MX","Activate","Mexico_Select_Activate_Automation","Tomas Torres",14,9,1.6,1,14,0,0,3,0,null,5,null,null],
+    ["Seller","MX","Activate","Mexico_Select_Activate_Data","Allison Rodriguez",0,null,0,null,0,0,0,0,0,null,11,null,null],
+    ["Tech Seller","MX","Activate","Mexico_Select_Activate_Data","Arnulfo Alejandro Cavazos Villarreal",0,null,0,null,0,0,0,0,0,null,24,null,null],
+    ["Tech Seller","MX","Activate","Mexico_Select_Activate_Data","Axel Quiroga Caldera",938,576,104.2,64,938,60,14,0,0,null,9,null,570],
+    ["Seller","MX","Activate","Mexico_Select_Activate_Data","Beatriz Fortis",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Seller","MX","Activate","Mexico_Select_Activate_Data","Marisol Davila",15,9,1.7,1,15,0,0,2,0,null,9,null,null],
+    ["Sales Acceleration","MX","Activate","Mexico_Select_Activate_Data","Valeria Plascencia",1548,1143,172,127,392,41,4,2,0,null,3,null,67],
+    ["Seller","MX","Activate","Mexico_Select_Activate_Infraestructure","David Cuello Fernandez",730,400,81.1,44.4,730,91,9,8,0,null,12,null,381],
+    ["Seller","MX","Activate","Mexico_Select_Activate_Infraestructure","David Gutierrez",6,4,0.7,0.4,6,0,0,3,0,null,2,null,null],
+    ["Seller","MX","Activate","Mexico_Select_Activate_Infraestructure","Franco Lospennato",16,9,1.8,1,16,0,0,7,0,null,6,null,null],
+    ["Seller","MX","Activate","Mexico_Select_Activate_Infraestructure","Sebastian gallego",9,7,1,0.8,9,0,0,0,0,null,0,null,null],
+    ["Seller","MX","Growth","Mexico_Select_Growth_Data","Sebastian Ortiz",0,null,0,null,0,0,0,0,0,null,19,null,null],
+    ["Seller","MX","Growth","Mexico_Select_Growth_Infraestructure","Maria Alejandra Chaves Castañeda",21,8,2.3,0.9,21,0,0,7,0,null,12,null,null],
+    ["Pending","PEB","Growth","PEB_Select_Growth_Automation_","Juan Conde",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Tech Seller","PEB","Growth","PEB_Select_Growth_Infraestructure","Francesco Niezen Elice",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Student","SSA","Activate","SSA_Select","Arthur Franchi",1,1,0.1,0.1,1,0,0,0,0,null,1,null,null],
+    ["Pending","SSA","Activate","SSA_Select","Gabriel Sales",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Pending","SSA","Activate","SSA_Select","Jimena Garcia Perez",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Pending","SSA","Activate","SSA_Select","Mylene Hisano",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Pending","SSA","Activate","SSA_Select","SANDRA RODRIGUEZ",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Sales Acceleration","SSA","Activate","SSA_Select_Activate_Automation","Agostina Pulen Serra",2286,1249,254,138.8,2286,312,50,3,0,null,0,null,369],
+    ["Seller","SSA","Activate","SSA_Select_Activate_Automation","Angie Paola Aleman Cardona",14,9,1.6,1,14,0,0,2,0,null,4,null,null],
+    ["Seller","SSA","Activate","SSA_Select_Activate_Automation","Juan Bautista Bayerque",138,78,15.3,8.7,138,12,0,0,0,null,0,null,78],
+    ["Student","SSA","Activate","SSA_Select_Activate_Automation","Salome Oviedo",313,166,34.8,18.4,313,56,2,1,0,null,0,null,166],
+    ["Seller","SSA","Activate","SSA_Select_Activate_Automation","Santiago Costa",9,9,1,1,9,0,0,1,0,null,2,null,null],
+    ["Student","SSA","Activate","SSA_Select_Activate_Automation","Santiago Hernandez",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["SDR","SSA","Activate","SSA_Select_Activate_Automation","Sol Marino",164,161,18.2,17.9,164,34,8,5,0,null,1,null,null],
+    ["SDR","SSA","Activate","SSA_Select_Activate_Data","Dolores Quintas",113,110,12.6,12.2,113,5,0,3,0,null,0,null,37],
+    ["Student","SSA","Activate","SSA_Select_Activate_Data","Kiara Yraha Arakaki",641,393,71.2,43.7,641,131,59,1,0,null,2,null,132],
+    ["Student","SSA","Activate","SSA_Select_Activate_Data","Laura Beltran Pineros",10,6,1.1,0.7,10,0,0,6,0,null,0,null,null],
+    ["Sales Acceleration","SSA","Activate","SSA_Select_Activate_Data","Marcos Garcia Laredo",894,423,99.3,47,473,84,16,2,0,null,0,null,181],
+    ["Seller","SSA","Activate","SSA_Select_Activate_Data","Sebastian Ariel Fernandez",27,13,3,1.4,27,0,0,11,0,null,0,null,null],
+    ["Seller","SSA","Activate","SSA_Select_Activate_Infraestructure","Alejandro Baquero",7,6,0.8,0.7,7,0,0,2,0,null,5,null,null],
+    ["Student","SSA","Activate","SSA_Select_Activate_Infraestructure","Cristian Rico Guzman",778,251,86.4,27.9,778,134,26,19,0,null,2,null,null],
+    ["Seller","SSA","Activate","SSA_Select_Activate_Infraestructure","Daniela Ramos Cuenca",552,193,61.3,21.4,552,63,11,2,0,null,16,null,null],
+    ["Seller","SSA","Activate","SSA_Select_Activate_Infraestructure","Felipe Patiño",550,314,61.1,34.9,550,55,9,5,0,null,5,null,301],
+    ["Seller","SSA","Activate","SSA_Select_Activate_Infraestructure","Felipe Quintero Caro",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Sales Acceleration","SSA","Activate","SSA_Select_Activate_Infraestructure","Isabella Vergara Ordosgoitia",516,515,57.3,57.2,516,112,7,4,0,null,2,null,499],
+    ["Seller","SSA","Activate","SSA_Select_Activate_Infraestructure","Jesus Arias",5,4,0.6,0.4,5,0,0,0,0,null,4,null,null],
+    ["Seller","SSA","Activate","SSA_Select_Activate_Infraestructure","José Gabriel Luna Ruiz",20,10,2.2,1.1,20,0,0,5,0,null,2,null,null],
+    ["Sales Acceleration","SSA","Activate","SSA_Select_Activate_Infraestructure","Juan Carlos Mendoza",1745,1436,193.9,159.6,1745,546,35,12,0,null,0,null,1154],
+    ["Seller","SSA","Activate","SSA_Select_Activate_Infraestructure","Maria Antonia Escobar",22,19,2.4,2.1,21,0,0,6,0,null,9,null,null],
+    ["Seller","SSA","Activate","SSA_Select_Activate_Infraestructure","Monica Badillo",390,194,43.3,21.6,390,51,2,0,0,null,0,null,null],
+    ["Tech Seller","SSA","Activate","SSA_Select_Activate_Infraestructure","Pedro Arturo Rozzi Amador",6,3,0.7,0.3,6,0,0,5,0,null,1,null,null],
+    ["Seller","SSA","Activate","SSA_Select_Activate_Infraestructure","Santiago Leon",592,205,65.8,22.8,592,305,2,3,0,null,3,null,null],
+    ["Tech Seller","SSA","Activate","SSA_Select_Activate_Infraestructure","Willmar Sandoval",24,15,2.7,1.7,24,0,0,8,0,null,6,null,null],
+    ["Manager","SSA","Growth","SSA_Select_Growth","Maximiliano Barrientos",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Tech Seller","APU","Growth","APU_Select_Growth_Data","Matias Fabian Hernandez",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Pending","SSA","Growth","SSA_Select_Growth_Automation","laura Garzon",0,null,0,null,0,0,0,0,0,null,1,null,null],
+    ["Manager","BR","Activate","Brazil_Select_Activate","Fabio Mello",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["SDR","BR","Activate","Brazil_Select_Activate","Letícia Ishizawa",0,null,0,null,0,0,0,0,0,null,1,null,null],
+    ["Manager","BR","Activate","Brazil_Select_Activate","Rodrigo Rissoli",3,3,0.3,0.3,3,0,0,0,0,null,0,null,null],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Automation","João Xavier",17,12,1.9,1.3,17,0,0,3,0,null,3,null,null],
+    ["Tech Seller","BR","Activate","Brazil_Select_Activate_Automation","Rodrigo Casagrande Sposito",0,null,0,null,0,0,0,0,0,null,1,null,null],
+    ["Tech Seller","BR","Activate","Brazil_Select_Activate_Data","Pedro Andrioti",9,3,1,0.3,9,0,0,1,0,null,1,null,null],
+    ["Tech Seller","BR","Activate","Brazil_Select_Activate_Storage","Augusto Farias Barradas",0,null,0,null,0,0,0,0,0,null,1,null,null],
+    ["Seller","BR","Activate","Brazil_Select_Activate_Storage","Leticia Lara Parmigiani",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["SDR","BR","Activate","Brazil_Select_Activate_Storage","Michael Silva",93,93,10.3,10.3,93,28,5,1,0,null,0,null,null],
+    ["Seller","BR","Growth","Brazil_Select_Growth","Ricardo Pompeo",0,null,0,null,0,0,0,0,0,null,3,null,null],
+    ["Seller","BR","Growth","Brazil_Select_Growth_Automation","Vitor Scarellis",7,5,0.8,0.6,7,0,0,0,0,null,15,null,null],
+    ["Tech Seller","BR","Growth","Brazil_Select_Growth_Data","Joao Douverny",46,45,5.1,5,46,0,0,1,0,null,0,null,null],
+    ["Seller","BR","Growth","Brazil_Select_Growth_Infraestructure","Daisy Pereira Ferreira Matunaga",0,null,0,null,0,0,0,0,0,null,5,null,null],
+    ["Pending","CL","Growth","CH_Select_Growth_Data","Felipe Vera Gachón",0,null,0,null,0,0,0,0,0,null,8,null,null],
+    ["Tech Seller","CL","Growth","CH_Select_Growth_Data","German Reyes Alfsen",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Pending","CL","Growth","CH_Select_Growth_Data","Pedro Arturo Reyes Zaldivar",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Seller","CL","Growth","CH_Select_Growth_Infraestructure","Jose Rodrigo Barria Gomes",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Pending","CO","Growth","CO_Select_Growth_Automation","ANDREA CATALINA ROMERO",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Tech Seller","CO","Growth","CO_Select_Growth_Automation","Maria Fernanda Pava Rivera",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Seller","CO","Growth","CO_Select_Growth_Data","Javier Polo",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Seller","CO","Growth","CO_Select_Growth_Data","Maria Isabel Villegas",0,null,0,null,0,0,0,0,0,null,0,null,null],
+    ["Seller","CO","Growth","CO_Select_Growth_Infraestructure","Andres Diaz Verano",0,null,0,null,0,0,0,0,0,null,7,null,null],
+    ["Seller","CO","Growth","CO_Select_Growth_Infraestructure","María Camila Vivas Gasca",6,4,0.7,0.4,6,0,0,0,0,null,4,null,null]
+  ];
+
+  // ---------- Column definitions ----------
+  const COLS = [
+    { label:"Type",           rawIdx:0,  isNum:false },
+    { label:"Cluster",        rawIdx:1,  isNum:false },
+    { label:"Seller",         rawIdx:4,  isNum:false },
+    { label:"Total Act.",     rawIdx:5,  isNum:true  },
+    { label:"Avg/Day",        rawIdx:7,  isNum:true  },
+    { label:"People Touched", rawIdx:6,  isNum:true  },
+    { label:"Avg People/Day", rawIdx:8,  isNum:true  },
+    { label:"Emails Sent",    rawIdx:9,  isNum:true  },
+    { label:"Opened %",       rawIdx:10, isNum:true, isPct:true },
+    { label:"Clicked %",      rawIdx:11, isNum:true, isPct:true },
+    { label:"Replied %",      rawIdx:12, isNum:true, isPct:true },
+    { label:"Calls",          rawIdx:13, isNum:true  },
+    { label:"Conv.%",         rawIdx:14, isNum:true  },
+    { label:"Meetings",       rawIdx:15, isNum:true  },
+    { label:"Calls Overdue",  rawIdx:16, isNum:true  },
+    { label:"Emails Overdue", rawIdx:17, isNum:true  },
+  ];
+
+  let sortCol = 3, sortDir = -1;
+
+  // ---------- Populate filter dropdowns ----------
+  function populateSelect(id, col) {
+    const sel = document.getElementById(id);
+    [...new Set(RAW.map(r=>r[col]).filter(v=>v!==null&&v!==undefined&&v!==''))].sort()
+      .forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+  }
+  populateSelect('f-type',0); populateSelect('f-cluster',1);
+  populateSelect('f-segment',2); populateSelect('f-group',3);
+
+  // ---------- Build sortable thead ----------
+  const theadRow = document.getElementById('main-thead-row');
+  COLS.forEach((c,i)=>{
+    const th = document.createElement('th');
+    th.className = 'sortable'+(c.isNum?' num':'');
+    th.innerHTML = c.label+'<span class="sort-icon"></span>';
+    th.addEventListener('click',()=>{ sortCol===i ? sortDir*=-1 : (sortCol=i, sortDir=-1); update(); });
+    theadRow.appendChild(th);
+  });
+
+  function updateSortIcons() {
+    theadRow.querySelectorAll('th').forEach((th,i)=>{
+      th.classList.remove('sort-asc','sort-desc');
+      if(i===sortCol) th.classList.add(sortDir===1?'sort-asc':'sort-desc');
+    });
+  }
+
+  // ---------- Collapsible no-activity section ----------
+  document.getElementById('no-act-toggle').addEventListener('click', () => {
+    const wrap = document.getElementById('no-act-body-wrap');
+    const chev = document.getElementById('no-act-chevron');
+    wrap.classList.toggle('open');
+    chev.classList.toggle('open');
+  });
+
+  // ---------- Helpers ----------
+  const n   = v => typeof v==='number'?v:0;
+  const sum = (data,idx) => data.reduce((a,r)=>a+n(r[idx]),0);
+
+  function fmt(v){
+    if(v===null||v===undefined) return '<span class="zero">—</span>';
+    if(v===0) return '<span class="zero">0</span>';
+    return typeof v==='number'?v.toLocaleString():v;
+  }
+  function fmtPct(v){ return (v===null||v===undefined)?'<span class="zero">—</span>':v+'%'; }
+  // Compute per-row pct vs emails sent; returns formatted string
+  function pctVsSent(row, colIdx){
+    const sent = n(row[9]);
+    const val  = n(row[colIdx]);
+    if(sent===0) return '<span class="zero">—</span>';
+    return (val/sent*100).toFixed(1)+'%';
+  }
+  function badgeClass(t){
+    return {'SDR':'badge-sdr','Seller':'badge-seller','Tech Seller':'badge-tech',
+            'Sales Acceleration':'badge-sales','Pending':'badge-pending',
+            'Student':'badge-student','Manager':'badge-manager'}[t]||'badge-other';
+  }
+
+  function getFiltered(){
+    const fT=document.getElementById('f-type').value,
+          fC=document.getElementById('f-cluster').value,
+          fS=document.getElementById('f-segment').value,
+          fG=document.getElementById('f-group').value;
+    return RAW.filter(r=>(!fT||r[0]===fT)&&(!fC||r[1]===fC)&&(!fS||r[2]===fS)&&(!fG||r[3]===fG));
+  }
+
+  function sortData(data){
+    const col=COLS[sortCol];
+    return [...data].sort((a,b)=>{
+      if(col.isPct){
+        // sort by computed pct
+        const sentA=n(a[9]), sentB=n(b[9]);
+        const av = sentA>0 ? n(a[col.rawIdx])/sentA : -1;
+        const bv = sentB>0 ? n(b[col.rawIdx])/sentB : -1;
+        return sortDir*(av-bv);
+      }
+      const av=a[col.rawIdx], bv=b[col.rawIdx];
+      if(col.isNum) return sortDir*((typeof av==='number'?av:-Infinity)-(typeof bv==='number'?bv:-Infinity));
+      return sortDir*String(av??'').localeCompare(String(bv??''));
+    });
+  }
+
+  // ---------- Render KPIs ----------
+  function renderKPIs(data){
+    const ta=sum(data,5), tp=sum(data,6), em=sum(data,9),
+          op=sum(data,10), cl=sum(data,11), re=sum(data,12),
+          ca=sum(data,13), me=sum(data,15);
+    // avg/day: average of individual avg/day values (only reps with data)
+    const activeDays = data.filter(r=>typeof r[7]==='number'&&r[7]>0);
+    const avgAct = activeDays.length ? (activeDays.reduce((a,r)=>a+r[7],0)/activeDays.length).toFixed(1) : '—';
+    const activePpl = data.filter(r=>typeof r[8]==='number'&&r[8]>0);
+    const avgPpl = activePpl.length ? (activePpl.reduce((a,r)=>a+r[8],0)/activePpl.length).toFixed(1) : '—';
+
+    document.getElementById('kpi-total').textContent       = ta.toLocaleString();
+    document.getElementById('kpi-avg-act').textContent     = avgAct;
+    document.getElementById('kpi-people').textContent      = tp.toLocaleString();
+    document.getElementById('kpi-avg-ppl').textContent     = avgPpl;
+    document.getElementById('kpi-emails').textContent      = em.toLocaleString();
+    document.getElementById('kpi-opened').textContent      = op.toLocaleString();
+    document.getElementById('kpi-pct-opened').textContent  = em>0?(op/em*100).toFixed(1)+'%':'—';
+    document.getElementById('kpi-clicked').textContent     = cl.toLocaleString();
+    document.getElementById('kpi-pct-clicked').textContent = em>0?(cl/em*100).toFixed(1)+'%':'—';
+    document.getElementById('kpi-replied').textContent     = re.toLocaleString();
+    document.getElementById('kpi-pct-replied').textContent = em>0?(re/em*100).toFixed(1)+'%':'—';
+    document.getElementById('kpi-calls').textContent       = ca.toLocaleString();
+    document.getElementById('kpi-meetings').textContent    = me.toLocaleString();
+  }
+
+  // ---------- Render type chips ----------
+  function renderChips(data){
+    const counts={};
+    data.forEach(r=>{ counts[r[0]]=(counts[r[0]]||0)+1; });
+    const order=['Seller','SDR','Tech Seller','Sales Acceleration','Student','Manager','Pending'];
+    const chips=document.getElementById('type-chips');
+    chips.innerHTML=order.map(k=>`<div class="type-chip">${k} <strong>${counts[k]||0}</strong></div>`).join('');
+    const other=Object.keys(counts).filter(k=>!order.includes(k)).reduce((a,k)=>a+counts[k],0);
+    if(other) chips.innerHTML+=`<div class="type-chip">Other <strong>${other}</strong></div>`;
+  }
+
+  // ---------- Bar charts ----------
+  function renderBar(listId, data, colIdx, colorClass) {
+    const sorted=[...data].filter(r=>typeof r[colIdx]==='number'&&r[colIdx]>0).sort((a,b)=>b[colIdx]-a[colIdx]).slice(0,5);
+    const max=sorted.length?sorted[0][colIdx]:1;
+    const list=document.getElementById(listId);
+    if(!sorted.length){list.innerHTML='<li style="color:#57606a;font-size:11px;padding:6px 0">No data</li>';return;}
+    list.innerHTML=sorted.map(r=>`
+      <li class="bar-item">
+        <div class="bar-label">
+          <span class="name" title="${r[4]}">${r[4]}</span>
+          <span class="val ${colorClass}">${r[colIdx].toLocaleString()}</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill ${colorClass}" style="width:${Math.round(r[colIdx]/max*100)}%"></div></div>
+      </li>`).join('');
+  }
+
+  function renderReplyRateBar(listId, data, colorClass) {
+    const withRate = data
+      .filter(r=>typeof r[9]==='number'&&r[9]>0&&typeof r[12]==='number')
+      .map(r=>({ name:r[4], rate:parseFloat((r[12]/r[9]*100).toFixed(1)) }))
+      .filter(r=>r.rate>0).sort((a,b)=>b.rate-a.rate).slice(0,5);
+    const max=withRate.length?withRate[0].rate:1;
+    const list=document.getElementById(listId);
+    if(!withRate.length){list.innerHTML='<li style="color:#57606a;font-size:11px;padding:6px 0">No data</li>';return;}
+    list.innerHTML=withRate.map(r=>`
+      <li class="bar-item">
+        <div class="bar-label">
+          <span class="name" title="${r.name}">${r.name}</span>
+          <span class="val ${colorClass}">${r.rate}%</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill ${colorClass}" style="width:${Math.round(r.rate/max*100)}%"></div></div>
+      </li>`).join('');
+  }
+
+  // ---------- No-activity section ----------
+  function renderNoActivity(data){
+    const none=data.filter(r=>n(r[5])===0);
+    const total=data.length;
+    const pct=total>0?(none.length/total*100).toFixed(1):'0';
+    document.getElementById('no-act-count').textContent=none.length;
+    document.getElementById('no-act-pct').textContent=`(${pct}% of ${total} reps)`;
+    document.getElementById('no-act-body').innerHTML = none.length===0
+      ? '<tr><td colspan="5" style="padding:10px;color:#57606a;text-align:center">No reps with zero activities in this filter.</td></tr>'
+      : none.map(r=>`
+          <tr>
+            <td><span class="badge ${badgeClass(r[0])}">${r[0]}</span></td>
+            <td>${r[1]}</td>
+            <td>${r[2]}</td>
+            <td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r[3]}">${r[3]}</td>
+            <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r[4]}">${r[4]}</td>
+          </tr>`).join('');
+  }
+
+  // ---------- Main table ----------
+  function renderTable(data){
+    const sorted=sortData(data.filter(r=>n(r[5])>0));
+    document.getElementById('table-body').innerHTML=sorted.map(r=>`
+      <tr>
+        <td><span class="badge ${badgeClass(r[0])}">${r[0]}</span></td>
+        <td>${r[1]}</td>
+        <td style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r[4]}">${r[4]}</td>
+        <td class="num">${fmt(r[5])}</td>
+        <td class="num">${fmt(r[7])}</td>
+        <td class="num">${fmt(r[6])}</td>
+        <td class="num">${fmt(r[8])}</td>
+        <td class="num">${fmt(r[9])}</td>
+        <td class="num">${pctVsSent(r,10)}</td>
+        <td class="num">${pctVsSent(r,11)}</td>
+        <td class="num">${pctVsSent(r,12)}</td>
+        <td class="num">${fmt(r[13])}</td>
+        <td class="num">${fmtPct(r[14])}</td>
+        <td class="num">${fmt(r[15])}</td>
+        <td class="num">${fmt(r[16])}</td>
+        <td class="num">${fmt(r[17])}</td>
+      </tr>`).join('');
+  }
+
+  // ---------- Master update ----------
+  function update(){
+    const data=getFiltered();
+    renderKPIs(data);
+    renderChips(data);
+    renderBar('chart-activities', data, 5,  'blue');
+    renderBar('chart-emails',     data, 9,  'purple');
+    renderReplyRateBar('chart-replyrate', data, 'teal');
+    renderBar('chart-calls',      data, 13, 'green');
+    renderBar('chart-meetings',   data, 15, 'orange');
+    renderNoActivity(data);
+    renderTable(data);
+    updateSortIcons();
+    const active=data.filter(r=>n(r[5])>0).length;
+    document.getElementById('filter-count').textContent=`Showing ${data.length} of ${RAW.length} reps (${active} active)`;
+  }
+
+  ['f-type','f-cluster','f-segment','f-group'].forEach(id=>
+    document.getElementById(id).addEventListener('change',update));
+  document.getElementById('btn-reset').addEventListener('click',()=>{
+    ['f-type','f-cluster','f-segment','f-group'].forEach(id=>document.getElementById(id).value='');
+    update();
+  });
+
+  update();
+</script>
+</body>
+</html>
