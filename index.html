@@ -124,6 +124,15 @@
 
   <!-- Filters -->
   <div class="filters">
+    <div class="filter-group">
+      <label for="f-majorbu">Major BU:</label>
+      <select id="f-majorbu">
+        <option value="">All</option>
+        <option value="Software">Software</option>
+        <option value="Infra">Infra</option>
+        <option value="Cross">Cross</option>
+      </select>
+    </div>
     <div class="filter-group"><label for="f-type">User Type:</label><select id="f-type"><option value="">All</option></select></div>
     <div class="filter-group"><label for="f-cluster">Cluster:</label><select id="f-cluster"><option value="">All</option></select></div>
     <div class="filter-group"><label for="f-segment">Segment:</label><select id="f-segment"><option value="">All</option></select></div>
@@ -374,6 +383,15 @@
   populateSelect('f-type',0); populateSelect('f-cluster',1);
   populateSelect('f-segment',2); populateSelect('f-group',3);
 
+  // ---------- Major BU helper ----------
+  function getMajorBU(group) {
+    if (!group) return 'Cross';
+    const g = group.toLowerCase();
+    if (g.includes('automation') || g.includes('data'))                                           return 'Software';
+    if (g.includes('infraestructure') || g.includes('infrastructure') || g.includes('storage') || g.includes('power')) return 'Infra';
+    return 'Cross';
+  }
+
   // ---------- Practice helper ----------
   function getPractice(group) {
     if (!group) return 'Cross';
@@ -435,12 +453,14 @@
   }
 
   function getFiltered(){
-    const fT=document.getElementById('f-type').value,
+    const fBU=document.getElementById('f-majorbu').value,
+          fT=document.getElementById('f-type').value,
           fC=document.getElementById('f-cluster').value,
           fS=document.getElementById('f-segment').value,
           fG=document.getElementById('f-group').value,
           fP=document.getElementById('f-practice').value;
     return RAW.filter(r=>
+      (!fBU||getMajorBU(r[3])===fBU)&&
       (!fT||r[0]===fT)&&
       (!fC||r[1]===fC)&&
       (!fS||r[2]===fS)&&
@@ -596,10 +616,10 @@
     document.getElementById('filter-count').textContent=`Showing ${data.length} of ${RAW.length} reps (${active} active)`;
   }
 
-  ['f-type','f-cluster','f-segment','f-group','f-practice'].forEach(id=>
+  ['f-majorbu','f-type','f-cluster','f-segment','f-group','f-practice'].forEach(id=>
     document.getElementById(id).addEventListener('change',update));
   document.getElementById('btn-reset').addEventListener('click',()=>{
-    ['f-type','f-cluster','f-segment','f-group','f-practice'].forEach(id=>document.getElementById(id).value='');
+    ['f-majorbu','f-type','f-cluster','f-segment','f-group','f-practice'].forEach(id=>document.getElementById(id).value='');
     update();
   });
 
