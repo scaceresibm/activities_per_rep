@@ -135,6 +135,8 @@
         <option value="Automation">Automation</option>
         <option value="Data">Data</option>
         <option value="Infraestructure">Infraestructure</option>
+        <option value="Storage">Storage</option>
+        <option value="Power and Cloud">Power and Cloud</option>
         <option value="Cross">Cross</option>
       </select>
     </div>
@@ -376,9 +378,11 @@
   function getPractice(group) {
     if (!group) return 'Cross';
     const g = group.toLowerCase();
-    if (g.includes('automation')) return 'Automation';
-    if (g.includes('data'))       return 'Data';
-    if (g.includes('infraestructure') || g.includes('infrastructure')) return 'Infraestructure';
+    if (g.includes('automation'))                                        return 'Automation';
+    if (g.includes('data'))                                              return 'Data';
+    if (g.includes('infraestructure') || g.includes('infrastructure'))   return 'Infraestructure';
+    if (g.includes('storage'))                                           return 'Storage';
+    if (g.includes('power') || g.includes('cloud'))                      return 'Power and Cloud';
     return 'Cross';
   }
 
