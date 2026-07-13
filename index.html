@@ -128,6 +128,16 @@
     <div class="filter-group"><label for="f-cluster">Cluster:</label><select id="f-cluster"><option value="">All</option></select></div>
     <div class="filter-group"><label for="f-segment">Segment:</label><select id="f-segment"><option value="">All</option></select></div>
     <div class="filter-group"><label for="f-group">Group:</label><select id="f-group"><option value="">All</option></select></div>
+    <div class="filter-group">
+      <label for="f-practice">Practice:</label>
+      <select id="f-practice">
+        <option value="">All</option>
+        <option value="Automation">Automation</option>
+        <option value="Data">Data</option>
+        <option value="Infraestructure">Infraestructure</option>
+        <option value="Cross">Cross</option>
+      </select>
+    </div>
     <button class="filter-reset" id="btn-reset">Reset</button>
     <span id="filter-count"></span>
   </div>
@@ -362,6 +372,16 @@
   populateSelect('f-type',0); populateSelect('f-cluster',1);
   populateSelect('f-segment',2); populateSelect('f-group',3);
 
+  // ---------- Practice helper ----------
+  function getPractice(group) {
+    if (!group) return 'Cross';
+    const g = group.toLowerCase();
+    if (g.includes('automation')) return 'Automation';
+    if (g.includes('data'))       return 'Data';
+    if (g.includes('infraestructure') || g.includes('infrastructure')) return 'Infraestructure';
+    return 'Cross';
+  }
+
   // ---------- Build sortable thead ----------
   const theadRow = document.getElementById('main-thead-row');
   COLS.forEach((c,i)=>{
@@ -414,8 +434,15 @@
     const fT=document.getElementById('f-type').value,
           fC=document.getElementById('f-cluster').value,
           fS=document.getElementById('f-segment').value,
-          fG=document.getElementById('f-group').value;
-    return RAW.filter(r=>(!fT||r[0]===fT)&&(!fC||r[1]===fC)&&(!fS||r[2]===fS)&&(!fG||r[3]===fG));
+          fG=document.getElementById('f-group').value,
+          fP=document.getElementById('f-practice').value;
+    return RAW.filter(r=>
+      (!fT||r[0]===fT)&&
+      (!fC||r[1]===fC)&&
+      (!fS||r[2]===fS)&&
+      (!fG||r[3]===fG)&&
+      (!fP||getPractice(r[3])===fP)
+    );
   }
 
   function sortData(data){
@@ -565,10 +592,10 @@
     document.getElementById('filter-count').textContent=`Showing ${data.length} of ${RAW.length} reps (${active} active)`;
   }
 
-  ['f-type','f-cluster','f-segment','f-group'].forEach(id=>
+  ['f-type','f-cluster','f-segment','f-group','f-practice'].forEach(id=>
     document.getElementById(id).addEventListener('change',update));
   document.getElementById('btn-reset').addEventListener('click',()=>{
-    ['f-type','f-cluster','f-segment','f-group'].forEach(id=>document.getElementById(id).value='');
+    ['f-type','f-cluster','f-segment','f-group','f-practice'].forEach(id=>document.getElementById(id).value='');
     update();
   });
 
