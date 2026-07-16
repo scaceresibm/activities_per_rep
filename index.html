@@ -106,6 +106,13 @@
   tbody tr:hover { background: #f7f8fa; }
   tbody td { padding: 5px 6px; }
   tbody td.num { text-align: right; }
+
+  /* Main activity table — compact + sticky header */
+  #main-table-wrap { max-height: 520px; overflow-y: auto; overflow-x: auto; }
+  #main-table { font-size: 10px; }
+  #main-table thead th { position: sticky; top: 0; z-index: 2; padding: 5px 4px; font-size: 9px; }
+  #main-table tbody td { padding: 4px 4px; }
+  #main-table tbody td:nth-child(3) { max-width: 110px; }
   .badge { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600; }
   .badge-sdr      { background: #dbeafe; color: #1e40af; }
   .badge-seller   { background: #dcfce7; color: #166534; }
@@ -253,7 +260,7 @@
 
   <!-- Rep Activity Details -->
   <div class="section-title" style="margin-top:20px">Rep Activity Details</div>
-  <div class="table-wrap">
+  <div class="table-wrap" id="main-table-wrap">
     <table id="main-table">
       <thead><tr id="main-thead-row"></tr></thead>
       <tbody id="table-body"></tbody>
@@ -573,9 +580,8 @@
   // ---------- Type filter matching ----------
   function typeMatches(rowType, filterVal) {
     if (!filterVal) return true;
-    const t = (rowType||'').toLowerCase();
-    if (filterVal === '__sdr_students__')       return t.includes('sdr') || t.includes('student');
-    if (filterVal === '__salesacc_students__')  return t.includes('sales acceleration') || t.includes('student');
+    if (filterVal === '__sdr_students__')      return rowType === 'SDR' || rowType === 'Student - SDR';
+    if (filterVal === '__salesacc_students__') return rowType === 'Sales Acceleration' || rowType === 'Student - Sales Acceleration';
     return rowType === filterVal;
   }
 
